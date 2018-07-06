@@ -22,12 +22,17 @@ type Collect struct {
 
 // CollectOptions controls the behavior of Collect
 type CollectOptions struct {
-	Handler             http.Handler
+	// Handler that should be used to pass requests to
+	Handler http.Handler
+	// CollectResponseBody sets the MaxBufferSize of the Body that should be collected
 	CollectResponseBody int
-	CollectRequestBody  int
-	CustomRouter        http.Handler
+	// CollectRequestBody sets the MaxBufferSize of the Body that should be collected
+	CollectRequestBody int
+	// CustomRouter can be used to define a custom router that should be used in addition to the Collect function
+	CustomRouter http.Handler
 }
 
+// New create a new Collector
 func New(options CollectOptions) *Collect {
 	if options.Handler == nil {
 		options.Handler = http.DefaultServeMux
@@ -76,7 +81,7 @@ func (collect *Collect) shouldCollect(r *http.Request) (http.Handler, *CollectOp
 	}
 	options := *collect.Options
 	req := MetricsRequest{
-		Options: &options,
+		CollectOptions: &options,
 	}
 
 	// check if handled by our "internal" router

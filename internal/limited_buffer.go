@@ -12,6 +12,7 @@ type LimitedBuffer struct {
 	MaxSize int
 }
 
+// Write writes a byte slice to the buffer and returns the written byte count
 func (b *LimitedBuffer) Write(p []byte) (int, error) {
 	size := len(p)
 	currentSize := b.Len()
@@ -37,10 +38,12 @@ func (b *LimitedBuffer) Write(p []byte) (int, error) {
 	return size, nil
 }
 
+// WriteString writes a string into the buffer and returns the written byte count
 func (b *LimitedBuffer) WriteString(s string) (int, error) {
 	return b.Write([]byte(s))
 }
 
+// WriteByte writes a byte into the buffer
 func (b *LimitedBuffer) WriteByte(p byte) error {
 	n, err := b.Write([]byte{p})
 	if err != nil {
@@ -52,6 +55,7 @@ func (b *LimitedBuffer) WriteByte(p byte) error {
 	return nil
 }
 
+// WriteRune writes a rune into the buffer and returns the written byte count
 func (b *LimitedBuffer) WriteRune(r rune) (int, error) {
 	if r < utf8.RuneSelf {
 		return 1, b.WriteByte(byte(r))

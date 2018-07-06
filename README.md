@@ -1,4 +1,4 @@
-# httpmetrics
+# httpmetrics [![GoDoc](https://godoc.org/github.com/talon-one/go-httpmetrics?status.svg)](https://godoc.org/github.com/talon-one/go-httpmetrics) [![go-report](https://goreportcard.com/badge/github.com/talon-one/go-httpmetrics)](https://goreportcard.com/report/github.com/talon-one/go-httpmetrics)
 
 Capture metrics for http.Requests and http.Responses
 
@@ -29,7 +29,13 @@ Response.Code: %d
 Response.Header: %v
 Response.Body: %s
 ============================
-`, m.Duration.String(), m.Request.URL.String(), m.Request.Header, string(m.Request.Body), m.Response.Code, m.Response.Header, string(m.Response.Body))
+`, m.Duration.String(),
+			m.Request.URL.String(),
+			m.Request.Header,
+			string(m.Request.Body),
+			m.Response.Code,
+			m.Response.Header,
+			string(m.Response.Body))
 	})
 
 	http.ListenAndServe(":8000", collectMetrics)

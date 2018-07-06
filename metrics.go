@@ -46,7 +46,7 @@ type MetricsFunc func(Metrics)
 
 // MetricsRequest will be passed to the CustomRouter, set the Collect fields to enable collection of this Request
 type MetricsRequest struct {
-	Options *CollectOptions
+	*CollectOptions
 	Collect bool
 }
 

@@ -48,23 +48,24 @@ func (collector *Collector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if router, options := collector.shouldCollect(r); router != nil && options != nil {
 		var metrics Metrics
 		metrics.Request.Request = r
-		var rw internal.ResponseWriter
+
 		if options.CollectResponseBody > 0 {
-			rw = internal.NewResponseWriterWithBody(w, options.CollectResponseBody)
+			metrics.responseWriter = internal.NewResponseWriterWithBody(w, options.CollectResponseBody)
 		} else {
-			rw = internal.NewResponseWriterWithoutBody(w)
+			metrics.responseWriter = internal.NewResponseWriterWithoutBody(w)
 		}
 
 		reqBodyReader := internal.NewRequestBodyReader(r.Body, options.CollectRequestBody)
 		r.Body = reqBodyReader
+
 		start := time.Now()
-		options.Handler.ServeHTTP(rw, r)
+		options.Handler.ServeHTTP(metrics.responseWriter, r)
 		metrics.Duration = time.Since(start)
 
-		metrics.Response.Header = rw.Header()
-		metrics.Response.Body = rw.Body()
-		metrics.Response.Code = rw.StatusCode()
-		metrics.Response.WrittenBodyBytes = rw.WrittenBodyBytes()
+		metrics.Response.Header = metrics.responseWriter.Header()
+		metrics.Response.Body = metrics.responseWriter.Body()
+		metrics.Response.Code = metrics.responseWriter.StatusCode()
+		metrics.Response.WrittenBodyBytes = metrics.responseWriter.WrittenBodyBytes()
 		metrics.Request.Body, _ = reqBodyReader.Body()
 		metrics.Request.ConsumedBodyBytes = reqBodyReader.ConsumedBodyBytes()
 
@@ -143,8 +144,9 @@ func (collector *Collector) routerHandler(fn MetricsFunc) func(http.ResponseWrit
 }
 
 func fakeRequest(r *http.Request) *http.Request {
-	req := *r
-	req.Body = nil
-	req.GetBody = nil
-	return &req
+	// req := *r
+	// req.Body = nil
+	// req.GetBody = nil
+	// return req.WithContext(r.Context())
+	return r
 }

@@ -1,11 +1,15 @@
 package internal
 
-import "net/http"
+import (
+	"net/http"
+	"sync"
+)
 
 type responseWriterWithoutBody struct {
 	statusCode int
 	written    int
 	http.ResponseWriter
+	customMetrics sync.Map
 }
 
 func (rw *responseWriterWithoutBody) Write(b []byte) (int, error) {
@@ -31,6 +35,14 @@ func (rw *responseWriterWithoutBody) Body() []byte {
 
 func (rw *responseWriterWithoutBody) WrittenBodyBytes() int {
 	return rw.written
+}
+
+func (rw *responseWriterWithoutBody) SetCustomMetric(key, value interface{}) {
+	rw.customMetrics.Store(key, value)
+}
+
+func (rw *responseWriterWithoutBody) GetCustomMetric(key interface{}) (interface{}, bool) {
+	return rw.customMetrics.Load(key)
 }
 
 // NewResponseWriterWithoutBody creates a new ResponseWriter that skipts the body

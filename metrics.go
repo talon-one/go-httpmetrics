@@ -3,14 +3,17 @@ package httpmetrics
 import (
 	"net/http"
 	"time"
+
+	"github.com/talon-one/go-httpmetrics/internal"
 )
 
 // Metrics holds the collected metrics
 type Metrics struct {
 	// Duration is the time it took to execute the handler.
-	Duration time.Duration
-	Request  Request
-	Response Response
+	Duration       time.Duration
+	Request        Request
+	Response       Response
+	responseWriter internal.ResponseWriter
 }
 
 // Header is a dummy function for fulfilling the http.Handler interface
@@ -25,6 +28,11 @@ func (Metrics) Write(b []byte) (int, error) {
 
 // WriteHeader is a dummy function for fulfilling the http.Handler interface
 func (Metrics) WriteHeader(int) {}
+
+// GetCustomMetric can be used to get a custom metric value
+func (m Metrics) GetCustomMetric(key interface{}) (interface{}, bool) {
+	return m.responseWriter.GetCustomMetric(key)
+}
 
 // Request extends the http.Request that was sent with Body and BodySize
 type Request struct {
@@ -62,3 +70,18 @@ func (*MetricsRequest) Write(b []byte) (int, error) {
 
 // WriteHeader is a dummy function for fulfilling the http.Handler interface
 func (*MetricsRequest) WriteHeader(int) {}
+
+// SetCustomMetric can be used to set custom fields inside the Handler
+func SetCustomMetric(w http.ResponseWriter, key, value interface{}) {
+	if rw, ok := w.(internal.ResponseWriter); ok {
+		rw.SetCustomMetric(key, value)
+	}
+}
+
+// GetCustomMetric can be used to get a custom field value out of a http.ResponseWriter
+func GetCustomMetric(w http.ResponseWriter, key interface{}) (interface{}, bool) {
+	if rw, ok := w.(internal.ResponseWriter); ok {
+		return rw.GetCustomMetric(key)
+	}
+	return nil, false
+}

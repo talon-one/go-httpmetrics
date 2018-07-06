@@ -518,3 +518,56 @@ func TestResponsePayloadLargeBuffer(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestCustomMetrics(t *testing.T) {
+	request := RequestPayload{
+		Method: http.MethodPost,
+		Code:   http.StatusOK,
+		Header: map[string]string{
+			"X-CUSTOM-HEADER": "VALUE",
+		},
+		Payload: "Hello World",
+	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+	collector := httpmetrics.New(httpmetrics.CollectOptions{
+		Handler: HandleAllRequests(func(w http.ResponseWriter, r *http.Request) {
+			httpmetrics.SetCustomMetric(w, "CustomMetric1", "Hello World")
+			httpmetrics.SetCustomMetric(w, "CustomMetric2", 10)
+
+			{
+				v, ok := httpmetrics.GetCustomMetric(w, "CustomMetric1")
+				require.True(t, ok)
+				require.Equal(t, v, "Hello World")
+			}
+
+			{
+				v, ok := httpmetrics.GetCustomMetric(w, "CustomMetric2")
+				require.True(t, ok)
+				require.Equal(t, v, 10)
+			}
+			EchoHandler(w, r)
+			wg.Done()
+		}),
+		CollectResponseBody: 1024,
+	})
+
+	collector.Collect(func(m httpmetrics.Metrics) {
+		CompareMetricsWithPayload(t, request, m)
+		{
+			v, ok := m.GetCustomMetric("CustomMetric1")
+			require.True(t, ok)
+			require.Equal(t, v, "Hello World")
+		}
+
+		{
+			v, ok := m.GetCustomMetric("CustomMetric2")
+			require.True(t, ok)
+			require.Equal(t, v, 10)
+		}
+		wg.Done()
+	})
+	s := httptest.NewServer(collector)
+	DoRequest(t, s, request)
+	wg.Wait()
+}

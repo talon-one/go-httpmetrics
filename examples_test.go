@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/talon-one/go-httpmetrics"
 )
@@ -78,6 +79,30 @@ Response.Body: %s
 		CollectRequestBody:  128,
 		CollectResponseBody: 128,
 		CustomRouter:        customRouter,
+	})
+
+	http.ListenAndServe(":8000", collectMetrics)
+}
+
+func ExampleCollector_customFields() {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		httpmetrics.SetCustomMetric(w, "Date", time.Now())
+		io.WriteString(w, "Hello World")
+	})
+
+	collectMetrics := httpmetrics.New(httpmetrics.CollectOptions{
+		CollectRequestBody:  128,
+		CollectResponseBody: 128,
+	})
+
+	collectMetrics.Collect(func(m httpmetrics.Metrics) {
+		if date, ok := m.GetCustomMetric("Date"); ok {
+			if tm := date.(time.Time); ok {
+				fmt.Printf(`Date: %s`, tm.String())
+			}
+		}
 	})
 
 	http.ListenAndServe(":8000", collectMetrics)

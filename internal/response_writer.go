@@ -11,4 +11,6 @@ type ResponseWriter interface {
 	Header() http.Header
 	Write([]byte) (int, error)
 	WriteHeader(statusCode int)
+	SetCustomMetric(key, value interface{})
+	GetCustomMetric(key interface{}) (interface{}, bool)
 }

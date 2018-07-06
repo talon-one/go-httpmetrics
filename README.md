@@ -42,4 +42,3 @@ Response.Body: %s
 }
 
 ```
-> You can run this example using `go run sample.go`

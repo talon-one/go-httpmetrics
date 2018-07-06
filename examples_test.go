@@ -8,7 +8,7 @@ import (
 	"github.com/talon-one/go-httpmetrics"
 )
 
-func ExampleCollect() {
+func ExampleCollector() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)

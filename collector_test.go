@@ -101,16 +101,16 @@ func TestCollect(t *testing.T) {
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
-	collect := httpmetrics.New(httpmetrics.CollectOptions{
+	collector := httpmetrics.New(httpmetrics.CollectOptions{
 		Handler:             EchoMux(),
 		CollectResponseBody: 1024,
 	})
 
-	collect.Collect(func(m httpmetrics.Metrics) {
+	collector.Collect(func(m httpmetrics.Metrics) {
 		CompareMetricsWithPayload(t, request, m)
 		wg.Done()
 	}, "/test")
-	s := httptest.NewServer(collect)
+	s := httptest.NewServer(collector)
 	s.URL += "/test"
 	DoRequest(t, s, request)
 	wg.Wait()
@@ -128,16 +128,16 @@ func TestCollectAll(t *testing.T) {
 		}
 		var wg sync.WaitGroup
 		wg.Add(1)
-		collect := httpmetrics.New(httpmetrics.CollectOptions{
+		collector := httpmetrics.New(httpmetrics.CollectOptions{
 			Handler:             EchoMux(),
 			CollectResponseBody: 1024,
 		})
 
-		collect.Collect(func(m httpmetrics.Metrics) {
+		collector.Collect(func(m httpmetrics.Metrics) {
 			CompareMetricsWithPayload(t, request, m)
 			wg.Done()
 		}, "*")
-		s := httptest.NewServer(collect)
+		s := httptest.NewServer(collector)
 		s.URL += "/test"
 		DoRequest(t, s, request)
 		wg.Wait()
@@ -154,16 +154,16 @@ func TestCollectAll(t *testing.T) {
 		}
 		var wg sync.WaitGroup
 		wg.Add(1)
-		collect := httpmetrics.New(httpmetrics.CollectOptions{
+		collector := httpmetrics.New(httpmetrics.CollectOptions{
 			Handler:             EchoMux(),
 			CollectResponseBody: 1024,
 		})
 
-		collect.Collect(func(m httpmetrics.Metrics) {
+		collector.Collect(func(m httpmetrics.Metrics) {
 			CompareMetricsWithPayload(t, request, m)
 			wg.Done()
 		})
-		s := httptest.NewServer(collect)
+		s := httptest.NewServer(collector)
 		s.URL += "/test"
 		DoRequest(t, s, request)
 		wg.Wait()
@@ -182,15 +182,15 @@ func TestCollectWithDefaultServeMux(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	http.HandleFunc("/", EchoHandler)
-	collect := httpmetrics.New(httpmetrics.CollectOptions{
+	collector := httpmetrics.New(httpmetrics.CollectOptions{
 		CollectResponseBody: 1024,
 	})
 
-	collect.Collect(func(m httpmetrics.Metrics) {
+	collector.Collect(func(m httpmetrics.Metrics) {
 		CompareMetricsWithPayload(t, request, m)
 		wg.Done()
 	}, "*")
-	s := httptest.NewServer(collect)
+	s := httptest.NewServer(collector)
 	s.URL += "/test"
 	DoRequest(t, s, request)
 	wg.Wait()
@@ -205,15 +205,15 @@ func TestNoCollect(t *testing.T) {
 		},
 		Payload: "Hello World",
 	}
-	collect := httpmetrics.New(httpmetrics.CollectOptions{
+	collector := httpmetrics.New(httpmetrics.CollectOptions{
 		Handler:             EchoMux(),
 		CollectResponseBody: 1024,
 	})
 
-	collect.Collect(func(m httpmetrics.Metrics) {
+	collector.Collect(func(m httpmetrics.Metrics) {
 		require.FailNow(t, "this should not be called")
 	}, "/test")
-	s := httptest.NewServer(collect)
+	s := httptest.NewServer(collector)
 	DoRequest(t, s, request)
 }
 
@@ -228,7 +228,7 @@ func TestCollectWithCustomRouter(t *testing.T) {
 	}
 	var wg sync.WaitGroup
 	wg.Add(2)
-	collect := httpmetrics.New(httpmetrics.CollectOptions{
+	collector := httpmetrics.New(httpmetrics.CollectOptions{
 		Handler: EchoMux(),
 		CustomRouter: HandleAllRequests(func(w http.ResponseWriter, _ *http.Request) {
 			switch m := w.(type) {
@@ -243,7 +243,7 @@ func TestCollectWithCustomRouter(t *testing.T) {
 			}
 		}),
 	})
-	s := httptest.NewServer(collect)
+	s := httptest.NewServer(collector)
 	DoRequest(t, s, request)
 	wg.Wait()
 }
@@ -259,7 +259,7 @@ func TestNoCollectWithCustomRouter(t *testing.T) {
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
-	collect := httpmetrics.New(httpmetrics.CollectOptions{
+	collector := httpmetrics.New(httpmetrics.CollectOptions{
 		Handler: EchoMux(),
 		CustomRouter: HandleAllRequests(func(w http.ResponseWriter, _ *http.Request) {
 			switch m := w.(type) {
@@ -271,7 +271,7 @@ func TestNoCollectWithCustomRouter(t *testing.T) {
 			}
 		}),
 	})
-	s := httptest.NewServer(collect)
+	s := httptest.NewServer(collector)
 	DoRequest(t, s, request)
 	wg.Wait()
 }
@@ -287,7 +287,7 @@ func TestCustomRouterInvalidMetricsHandler(t *testing.T) {
 	}
 	var wg sync.WaitGroup
 	wg.Add(2)
-	collect := httpmetrics.New(httpmetrics.CollectOptions{
+	collector := httpmetrics.New(httpmetrics.CollectOptions{
 		Handler: EchoMux(),
 		CustomRouter: HandleAllRequests(func(w http.ResponseWriter, _ *http.Request) {
 			switch m := w.(type) {
@@ -302,7 +302,7 @@ func TestCustomRouterInvalidMetricsHandler(t *testing.T) {
 			}
 		}),
 	})
-	s := httptest.NewServer(collect)
+	s := httptest.NewServer(collector)
 	DoRequest(t, s, request)
 	wg.Wait()
 }
@@ -318,7 +318,7 @@ func TestCustomRouterInvalidMetricsRequestHandler(t *testing.T) {
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
-	collect := httpmetrics.New(httpmetrics.CollectOptions{
+	collector := httpmetrics.New(httpmetrics.CollectOptions{
 		Handler: EchoMux(),
 		CustomRouter: HandleAllRequests(func(w http.ResponseWriter, _ *http.Request) {
 			switch w.(type) {
@@ -332,7 +332,7 @@ func TestCustomRouterInvalidMetricsRequestHandler(t *testing.T) {
 			}
 		}),
 	})
-	s := httptest.NewServer(collect)
+	s := httptest.NewServer(collector)
 	DoRequest(t, s, request)
 	wg.Wait()
 }
@@ -350,18 +350,18 @@ func TestCustomRouterAndDefaultRouter(t *testing.T) {
 		}
 		var wg sync.WaitGroup
 		wg.Add(1)
-		collect := httpmetrics.New(httpmetrics.CollectOptions{
+		collector := httpmetrics.New(httpmetrics.CollectOptions{
 			Handler:             EchoMux(),
 			CollectResponseBody: 128,
 			CustomRouter: HandleAllRequests(func(w http.ResponseWriter, _ *http.Request) {
 				require.FailNow(t, "this should not be called")
 			}),
 		})
-		collect.Collect(func(m httpmetrics.Metrics) {
+		collector.Collect(func(m httpmetrics.Metrics) {
 			CompareMetricsWithPayload(t, request, m)
 			wg.Done()
 		}, "/test")
-		s := httptest.NewServer(collect)
+		s := httptest.NewServer(collector)
 		s.URL += "/test"
 		DoRequest(t, s, request)
 		wg.Wait()
@@ -377,7 +377,7 @@ func TestCustomRouterAndDefaultRouter(t *testing.T) {
 		}
 		var wg sync.WaitGroup
 		wg.Add(1)
-		collect := httpmetrics.New(httpmetrics.CollectOptions{
+		collector := httpmetrics.New(httpmetrics.CollectOptions{
 			Handler:             EchoMux(),
 			CollectResponseBody: 128,
 			CustomRouter: HandleAllRequests(func(w http.ResponseWriter, _ *http.Request) {
@@ -390,10 +390,10 @@ func TestCustomRouterAndDefaultRouter(t *testing.T) {
 				}
 			}),
 		})
-		collect.Collect(func(m httpmetrics.Metrics) {
+		collector.Collect(func(m httpmetrics.Metrics) {
 			require.FailNow(t, "this should not be called")
 		}, "/test")
-		s := httptest.NewServer(collect)
+		s := httptest.NewServer(collector)
 		DoRequest(t, s, request)
 		wg.Wait()
 	})
@@ -402,7 +402,7 @@ func TestCustomRouterAndDefaultRouter(t *testing.T) {
 func TestRequestPayload(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	collect := httpmetrics.New(httpmetrics.CollectOptions{
+	collector := httpmetrics.New(httpmetrics.CollectOptions{
 		Handler: HandleAllRequests(func(_ http.ResponseWriter, r *http.Request) {
 			_, _ = ioutil.ReadAll(r.Body)
 		}),
@@ -414,11 +414,11 @@ func TestRequestPayload(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 128, n)
 
-	collect.Collect(func(m httpmetrics.Metrics) {
+	collector.Collect(func(m httpmetrics.Metrics) {
 		require.Equal(t, payload, m.Request.Body)
 		wg.Done()
 	})
-	s := httptest.NewServer(collect)
+	s := httptest.NewServer(collector)
 
 	req, err := http.NewRequest(http.MethodPost, s.URL, bytes.NewBuffer(payload[:]))
 	require.NoError(t, err)
@@ -432,7 +432,7 @@ func TestRequestPayload(t *testing.T) {
 func TestRequestPayloadNoRead(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	collect := httpmetrics.New(httpmetrics.CollectOptions{
+	collector := httpmetrics.New(httpmetrics.CollectOptions{
 		Handler:            HandleAllRequests(func(http.ResponseWriter, *http.Request) {}),
 		CollectRequestBody: 1024,
 	})
@@ -442,11 +442,11 @@ func TestRequestPayloadNoRead(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 128, n)
 
-	collect.Collect(func(m httpmetrics.Metrics) {
+	collector.Collect(func(m httpmetrics.Metrics) {
 		require.Equal(t, payload, m.Request.Body)
 		wg.Done()
 	})
-	s := httptest.NewServer(collect)
+	s := httptest.NewServer(collector)
 
 	req, err := http.NewRequest(http.MethodPost, s.URL, bytes.NewBuffer(payload[:]))
 	require.NoError(t, err)
@@ -460,7 +460,7 @@ func TestRequestPayloadNoRead(t *testing.T) {
 func TestRequestPayloadLargeBuffer(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	collect := httpmetrics.New(httpmetrics.CollectOptions{
+	collector := httpmetrics.New(httpmetrics.CollectOptions{
 		Handler: HandleAllRequests(func(_ http.ResponseWriter, r *http.Request) {
 			_, _ = ioutil.ReadAll(r.Body)
 		}),
@@ -472,11 +472,11 @@ func TestRequestPayloadLargeBuffer(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 128, n)
 
-	collect.Collect(func(m httpmetrics.Metrics) {
+	collector.Collect(func(m httpmetrics.Metrics) {
 		require.Equal(t, payload[:10], m.Request.Body)
 		wg.Done()
 	})
-	s := httptest.NewServer(collect)
+	s := httptest.NewServer(collector)
 
 	req, err := http.NewRequest(http.MethodPost, s.URL, bytes.NewBuffer(payload[:]))
 	require.NoError(t, err)
@@ -496,7 +496,7 @@ func TestResponsePayloadLargeBuffer(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 128, n)
 
-	collect := httpmetrics.New(httpmetrics.CollectOptions{
+	collector := httpmetrics.New(httpmetrics.CollectOptions{
 		Handler: HandleAllRequests(func(w http.ResponseWriter, r *http.Request) {
 			_, nestedError := w.Write(payload)
 			require.NoError(t, nestedError)
@@ -504,11 +504,11 @@ func TestResponsePayloadLargeBuffer(t *testing.T) {
 		CollectResponseBody: 10,
 	})
 
-	collect.Collect(func(m httpmetrics.Metrics) {
+	collector.Collect(func(m httpmetrics.Metrics) {
 		require.Equal(t, payload[:10], m.Response.Body)
 		wg.Done()
 	})
-	s := httptest.NewServer(collect)
+	s := httptest.NewServer(collector)
 
 	req, err := http.NewRequest(http.MethodPost, s.URL, bytes.NewBuffer(payload[:]))
 	require.NoError(t, err)

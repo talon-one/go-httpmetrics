@@ -11,8 +11,8 @@ import (
 	"github.com/talon-one/go-httpmetrics/internal"
 )
 
-// Collect is a http middleware that can be used to collect metrics for an http request and the coresponding response
-type Collect struct {
+// Collector is a http middleware that can be used to collect metrics for an http request and the coresponding response
+type Collector struct {
 	Options *CollectOptions
 
 	mu             sync.Mutex
@@ -33,19 +33,19 @@ type CollectOptions struct {
 }
 
 // New create a new Collector
-func New(options CollectOptions) *Collect {
+func New(options CollectOptions) *Collector {
 	if options.Handler == nil {
 		options.Handler = http.DefaultServeMux
 	}
 	opts := &options
-	return &Collect{
+	return &Collector{
 		routes:  make(map[string]http.HandlerFunc),
 		Options: opts,
 	}
 }
 
-func (collect *Collect) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if router, options := collect.shouldCollect(r); router != nil && options != nil {
+func (collector *Collector) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if router, options := collector.shouldCollect(r); router != nil && options != nil {
 		var metrics Metrics
 		metrics.Request.Request = r
 		var rw internal.ResponseWriter
@@ -72,69 +72,69 @@ func (collect *Collect) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-	collect.Options.Handler.ServeHTTP(w, r)
+	collector.Options.Handler.ServeHTTP(w, r)
 }
 
-func (collect *Collect) shouldCollect(r *http.Request) (http.Handler, *CollectOptions) {
+func (collector *Collector) shouldCollect(r *http.Request) (http.Handler, *CollectOptions) {
 	if r == nil || r.URL == nil {
 		return nil, nil
 	}
-	options := *collect.Options
+	options := *collector.Options
 	req := MetricsRequest{
 		CollectOptions: &options,
 	}
 
 	// check if handled by our "internal" router
-	collect.mu.Lock()
-	handler, ok := collect.routes[strings.ToLower(r.URL.Path)]
+	collector.mu.Lock()
+	handler, ok := collector.routes[strings.ToLower(r.URL.Path)]
 	if ok {
-		collect.mu.Unlock()
+		collector.mu.Unlock()
 		return handler, &options
 	}
 
 	// we have no route in our router
 	// maybe the custom router has something?
-	if collect.Options.CustomRouter != nil {
-		collect.Options.CustomRouter.ServeHTTP(&req, fakeRequest(r))
+	if collector.Options.CustomRouter != nil {
+		collector.Options.CustomRouter.ServeHTTP(&req, fakeRequest(r))
 		if req.Collect {
-			collect.mu.Unlock()
-			return collect.Options.CustomRouter, &options
+			collector.mu.Unlock()
+			return collector.Options.CustomRouter, &options
 		}
 	}
 	// if we have a defaultHandler set
-	if collect.defaultHandler != nil {
-		collect.mu.Unlock()
-		return collect.defaultHandler, collect.Options
+	if collector.defaultHandler != nil {
+		collector.mu.Unlock()
+		return collector.defaultHandler, collector.Options
 	}
-	collect.mu.Unlock()
+	collector.mu.Unlock()
 	return nil, nil
 }
 
 // Collect adds the specified paths to the desired metrics function
 // if no path (or *) is specified the function will be used for all unmatched requests
-func (collect *Collect) Collect(fn MetricsFunc, paths ...string) {
-	handler := collect.routerHandler(fn)
+func (collector *Collector) Collect(fn MetricsFunc, paths ...string) {
+	handler := collector.routerHandler(fn)
 
-	collect.mu.Lock()
+	collector.mu.Lock()
 	if len(paths) == 0 {
-		collect.defaultHandler = handler
-		collect.mu.Unlock()
+		collector.defaultHandler = handler
+		collector.mu.Unlock()
 		return
 	}
 	for _, p := range paths {
 		p = strings.ToLower(path.Clean(filepath.ToSlash(p)))
 		if p == "*" {
-			collect.defaultHandler = handler
+			collector.defaultHandler = handler
 		} else {
 			// prepend slash
 			p = "/" + strings.Trim(p, "/")
-			collect.routes[p] = handler
+			collector.routes[p] = handler
 		}
 	}
-	collect.mu.Unlock()
+	collector.mu.Unlock()
 }
 
-func (collect *Collect) routerHandler(fn MetricsFunc) func(http.ResponseWriter, *http.Request) {
+func (collector *Collector) routerHandler(fn MetricsFunc) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		if m, ok := w.(Metrics); ok {
 			fn(m)
